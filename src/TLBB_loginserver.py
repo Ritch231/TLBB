@@ -120,6 +120,8 @@ def check_server_information():
                     log.info(
                         "ip:" + matches[0][5] + ":" + matches[0][6] + " 游戏版本号：" + matches[0][7] + " 服务器状态：" +
                         matches[0][2] + "  检测周期：" + str(check_time) + "秒")
+                        
+                    time.sleep(0.1)
                     # print(len(matches[0]), matches[0])
                     # 服务器版本检测
                     new_version = matches[0][7]
@@ -203,6 +205,7 @@ def check_server_information():
                             client_socket.connect((target_ip, target_port))
                             print(f"成功连接到 {target_ip}:{target_port}")
                             log.info(f"成功连接到 {target_ip}:{target_port}")
+                            time.sleep(0.1)
                             # 断开连接
                             client_socket.close()
                             # 端口开放
@@ -235,12 +238,15 @@ def check_server_information():
                 else:
                     print("匹配到到数据有异常！")
                     log.info("匹配到到数据有异常！")
+                    time.sleep(0.1)
             else:
                 print("正则匹配错误！")
                 log.info("正则匹配错误！")
+                time.sleep(0.1)
         else:
             print("get请求服务器失败！")
             log.info("get请求服务器失败！")
+            time.sleep(0.1)
 
         # 每30秒检测一次
         time.sleep(check_time)
