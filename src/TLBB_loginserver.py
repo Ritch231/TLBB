@@ -10,8 +10,8 @@ from logging.handlers import TimedRotatingFileHandler
 import requests
 
 # 设置日志目录和文件名格式
-# log_dir = '/workfolder/logs/loginserver'
-log_dir = '/Users/vicen/code/loginserver'
+log_dir = '/workfolder/logs/loginserver'
+# log_dir = '/Users/vicen/code/loginserver'
 
 # 创建日志目录（如果不存在）
 if not os.path.exists(log_dir):
