@@ -10,7 +10,8 @@ from logging.handlers import TimedRotatingFileHandler
 import requests
 
 # 设置日志目录和文件名格式
-log_dir = '/workfolder/logs/loginserver'
+# log_dir = '/workfolder/logs/loginserver'
+log_dir = '/Users/vicen/code/loginserver'
 
 # 创建日志目录（如果不存在）
 if not os.path.exists(log_dir):
@@ -21,6 +22,7 @@ if not os.path.exists(log_dir):
     MESSAGE：发送消息的内容
     IsProxy：是否使用代理，1使用 0不使用
 '''
+
 
 def send_telegram_message(MESSAGE, IsProxy):
     # 机器人的 token
@@ -113,10 +115,11 @@ def check_server_information():
             # 使用findall方法查找所有匹配的IP地址和端口号
             matches = re.findall(pattern, text)
             print(matches)
-            log.info("检测周期："+ check_time + matches)
             if len(matches) > 0:
-
                 if len(matches[0]) == 8:
+                    log.info(
+                        "ip:" + matches[0][5] + ":" + matches[0][6] + " 游戏版本号：" + matches[0][7] + " 服务器状态：" +
+                        matches[0][2] + "  检测周期：" + str(check_time) + "秒")
                     # print(len(matches[0]), matches[0])
                     # 服务器版本检测
                     new_version = matches[0][7]
@@ -241,5 +244,6 @@ def check_server_information():
 
         # 每30秒检测一次
         time.sleep(check_time)
+
 
 check_server_information()
