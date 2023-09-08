@@ -10,8 +10,12 @@ import json  # 导入 json 模块，用于处理 JSON 数据
 
 # 加载配置文件
 def load_config():
+    # 获取文件目录
+    patch_dir = os.path.dirname(os.path.abspath(__file__))
+    # 构建文件路径
+    config_dir = os.path.join(patch_dir, "config/config.json")
     try:
-        with open('./config/config.json', 'r') as config_file:
+        with open(config_dir, 'r') as config_file:
             return json.load(config_file)
     except FileNotFoundError:
         logging.error("配置文件未找到！")
