@@ -6,9 +6,9 @@ RUN pip3 install lxml
 RUN mkdir -p /workfolder
 RUN mkdir -p /workfolder/app
 RUN mkdir -p /workfolder/app/config
-RUN mkdir -p /workfolder/config/logs
-RUN mkdir -p /workfolder/config/logs/log_bbs
-RUN mkdir -p /workfolder/config/logs/log_server
+RUN mkdir -p /workfolder/app/logs
+RUN mkdir -p /workfolder/app/logs/log_bbs
+RUN mkdir -p /workfolder/app/logs/log_server
 # 设置工作目录
 WORKDIR /workfolder
 # 复制 Python 文件到容器中
