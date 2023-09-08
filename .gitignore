@@ -20,7 +20,7 @@ rad.json
 *.flf
 #Test results file
 TestResults.xml
-*.DS_Store/
 .DS_Store/
+.DS_Store
 tlbbs.txt
 *.log
