@@ -96,10 +96,17 @@ def send_synology_chat_message(message):
 def check_server_information():
     # 检测周期
     check_time = 60
-    # 初始化上一次检测的日期
-    last_checked_date = date.today() - timedelta(days=1)
     # 获取当前脚本所在的目录
     script_dir = os.path.dirname(os.path.abspath(__file__))
+    # 构建日志文件的相对路径
+    log_file_name = os.path.join(script_dir, "logs/log_server", date.today().strftime('%Y%m%d.log'))
+    # 创建日志文件并配置
+    logging.basicConfig(filename=log_file_name, level=logging.INFO, format='%(asctime)s - %(message)s')
+    # 记录日志的时间间隔（20分钟）
+    log_interval = timedelta(minutes=20)
+    # 记录日志的初始时间
+    start_time = datetime.now()
+    logging.info("server检测程序开始执行...")
     port_status = 0
     server_status = "0"
     version = ""
@@ -110,20 +117,8 @@ def check_server_information():
     url = 'http://tlbblmupdate.changyou.com/xtlbbclose-jd/loginserver.txt'  # 设置游戏服务器信息的 URL
 
     while True:
-        # 获取当前日期
-        current_date = date.today()
-
-        # 检查日期是否变化，如果发生变化则重新配置日志和创建新的日志文件
-        if current_date != last_checked_date:
-            # 构建日志文件的相对路径
-            log_file_name = os.path.join(script_dir, "logs/log_server", date.today().strftime('%Y%m%d.log'))
-            # 创建日志文件并配置
-            logging.basicConfig(filename=log_file_name, level=logging.INFO, format='%(asctime)s - %(message)s')
-            last_checked_date = current_date
-            logging.info("server检测程序开始执行...")
         # 发送 GET 请求获取游戏服务器信息
         response = requests.get(url=url, headers=headers)
-
         if response.status_code == 200:
             response.encoding = 'gb18030'
             text = response.text
@@ -154,9 +149,18 @@ def check_server_information():
 
                 target_ip = matches[0][5]
                 target_port = int(matches[0][6])
+                current_time = datetime.now()
+
+                # 计算距离开始运行的时间
+                elapsed_time = current_time - start_time
+                # 运行20分钟写入一次记录
+                if elapsed_time >= log_interval:
+                    logging.info(
+                        f"ip:{matches[0][5]}:{matches[0][6]} 游戏版本号：{matches[0][7]} 服务器状态：{matches[0][2]}  检测周期：{check_time}秒")
+                    # 重置计时器
+                    start_time = current_time
                 # 最大重连次数
                 max_retries = 3
-
                 for retry_count in range(max_retries):
                     try:
                         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

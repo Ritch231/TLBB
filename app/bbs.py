@@ -129,26 +129,18 @@ headers = {
 
 
 def check():
-    # 初始化上一次检测的日期
-    last_checked_date = date.today() - timedelta(days=1)
     # 获取当前脚本所在的目录
     script_dir = os.path.dirname(os.path.abspath(__file__))
+    # 构建日志文件的相对路径
+    log_file_name = os.path.join(script_dir, "logs/log_bbs", date.today().strftime('%Y%m%d.log'))
+    # 创建日志文件并配置
+    logging.basicConfig(filename=log_file_name, level=logging.INFO, format='%(asctime)s - %(message)s')
+    logging.info("bbs检测程序开始执行...")
     # 记录更新内容的文件
     bbs_filename = os.path.join(script_dir, "logs/log_bbs", "tlbbs.txt")
     # 今天是否有更新
     is_get_message = False
     while True:
-        # 获取当前日期
-        current_date = date.today()
-
-        # 检查日期是否变化，如果发生变化则重新配置日志和创建新的日志文件
-        if current_date != last_checked_date:
-            # 构建日志文件的相对路径
-            log_file_name = os.path.join(script_dir, "logs/log_bbs", date.today().strftime('%Y%m%d.log'))
-            # 创建日志文件并配置
-            logging.basicConfig(filename=log_file_name, level=logging.INFO, format='%(asctime)s - %(message)s')
-            last_checked_date = current_date
-            logging.info("bbs检测程序开始执行...")
         # 发送GET请求
         response = requests.get(url, headers=headers)
         # 使用response.content来获取HTML内容，而不是response.text
