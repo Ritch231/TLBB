@@ -141,84 +141,95 @@ def check():
     # 今天是否有更新
     is_get_message = False
     while True:
-        # 发送GET请求
-        response = requests.get(url, headers=headers)
-        # 使用response.content来获取HTML内容，而不是response.text
-        html_content = response.content
-
-        # 解析HTML内容
-        root = html.fromstring(html_content)
-
-        # 使用XPath选择整个表格
-        table = root.xpath('//table[@id="threadlisttableid"]')[0]
-
-        # 遍历表格的每一行
-        for row in table.xpath('.//tr'):
-            # 遍历每一行的单元格并提取文本内容
-            cells = row.xpath('.//td|th')
-            row_data = [cell.text_content().strip() for cell in cells]
-            # print(f"行数据: {row_data}")
-            # 获取更新公告的标题
-            table_title = row_data[1]
-            # 标题替换不需要的内容
-            table_title = table_title.replace("预览\r\n ", "").replace("\r\n\r\nNew", "")
-            # 判断标题是否含有内测关键词
-            # if "龙腾天下" in table_title or "龙啸苍穹" in table_title or "内测" in table_title or "龙门" in table_title:
-            if any(keyword in table_title for keyword in ["龙腾天下", "龙啸苍穹", "内测", "龙门"]):
-                # 获取公告发布时间，如：“admin002 \r\n2023-8-11 17:28”
-                input_string = row_data[2]
-                # 正则匹配出公告时间，如：“2023-8-15”
-                pattern = r'(\d{4}-\d{1,2}-\d{1,2} \d{1,2}:\d{1,2})'
-                # 使用re.findall()进行匹配
-                matches = re.findall(pattern, input_string)
-                # 如果有匹配项，提取第一个匹配项
-                if matches:
-                    date_time = matches[0]
-                    # 解析时间字符串，转换为datetime对象 "2023-8-7 11:24" 转为 “2023-08-07 11:24:00”
-                    time_obj = datetime.strptime(date_time, '%Y-%m-%d %H:%M')
-                    # print(date_time, time_obj)
-                    # 获取当前时间，提取年月日
-                    now = datetime.now()
-                    now_year, now_month, now_day = now.year, now.month, now.day
-                    # 根据解析时间的年月日，判断是否是今天的最新公告
-                    if time_obj.year == now_year and time_obj.month == now_month and time_obj.day == now_day:
-                        # 发现更新
-                        is_get_message = True
-                        # if time_obj.year == 2023 and time_obj.month == 9 and time_obj.day == 7:
-                        # 使用XPath来获取链接
-                        link_elements = row.xpath('.//td[@class="num"]/a[@class="xi2"]/@href')
-                        # 检查是否找到链接元素
-                        if link_elements:
-                            # 获取到对应连接
-                            link = "http://bbs.tl.changyou.com/" + link_elements[0]
-                            response = requests.get(link, headers=headers)
-                            # 解析HTML内容
-                            tree = html.fromstring(response.content)
-                            # 定义XPath表达式来选择所需的文本
-                            xpath_expression = "//td[@class='t_f']/text()"
-                            # 使用XPath提取文本
-                            text = tree.xpath(xpath_expression)
-                            # 将提取的文本连接成一个单独的字符串
-                            result = "".join(text).strip()
-                            # 推送消息：标题+更新内容
-                            send_message = table_title + '\r\n' + result + '\r\n'
-                            is_have = search_multiline_text(bbs_filename, send_message)
-                            if is_have:
-                                logging.info("已推送更新内容")
+        try:
+            # 发送GET请求
+            response = requests.get(url, headers=headers)
+            # 检查响应状态码
+            if response.status_code == 200:
+                # 请求成功，继续处理响应内容
+                # 使用response.content来获取HTML内容，而不是response.text
+                html_content = response.content
+                # 解析HTML内容
+                root = html.fromstring(html_content)
+                try:
+                    # 使用XPath选择整个表格
+                    table = root.xpath('//table[@id="threadlisttableid"]')[0]
+                    # 遍历表格的每一行
+                    for row in table.xpath('.//tr'):
+                        # 遍历每一行的单元格并提取文本内容
+                        cells = row.xpath('.//td|th')
+                        row_data = [cell.text_content().strip() for cell in cells]
+                        # print(f"行数据: {row_data}")
+                        # 获取更新公告的标题
+                        table_title = row_data[1]
+                        # 标题替换不需要的内容
+                        table_title = table_title.replace("预览\r\n ", "").replace("\r\n\r\nNew", "")
+                        # 判断标题是否含有内测关键词
+                        # if "龙腾天下" in table_title or "龙啸苍穹" in table_title or "内测" in table_title or "龙门" in table_title:
+                        if any(keyword in table_title for keyword in ["龙腾天下", "龙啸苍穹", "内测", "龙门"]):
+                            # 获取公告发布时间，如：“admin002 \r\n2023-8-11 17:28”
+                            input_string = row_data[2]
+                            # 正则匹配出公告时间，如：“2023-8-15”
+                            pattern = r'(\d{4}-\d{1,2}-\d{1,2} \d{1,2}:\d{1,2})'
+                            # 使用re.findall()进行匹配
+                            matches = re.findall(pattern, input_string)
+                            # 如果有匹配项，提取第一个匹配项
+                            if matches:
+                                date_time = matches[0]
+                                # 解析时间字符串，转换为datetime对象 "2023-8-7 11:24" 转为 “2023-08-07 11:24:00”
+                                time_obj = datetime.strptime(date_time, '%Y-%m-%d %H:%M')
+                                # print(date_time, time_obj)
+                                # 获取当前时间，提取年月日
+                                now = datetime.now()
+                                now_year, now_month, now_day = now.year, now.month, now.day
+                                # 根据解析时间的年月日，判断是否是今天的最新公告
+                                if time_obj.year == now_year and time_obj.month == now_month and time_obj.day == now_day:
+                                    # 发现更新
+                                    is_get_message = True
+                                    # if time_obj.year == 2023 and time_obj.month == 9 and time_obj.day == 7:
+                                    # 使用XPath来获取链接
+                                    link_elements = row.xpath('.//td[@class="num"]/a[@class="xi2"]/@href')
+                                    # 检查是否找到链接元素
+                                    if link_elements:
+                                        # 获取到对应连接
+                                        link = "http://bbs.tl.changyou.com/" + link_elements[0]
+                                        response = requests.get(link, headers=headers)
+                                        # 解析HTML内容
+                                        tree = html.fromstring(response.content)
+                                        # 定义XPath表达式来选择所需的文本
+                                        xpath_expression = "//td[@class='t_f']/text()"
+                                        # 使用XPath提取文本
+                                        text = tree.xpath(xpath_expression)
+                                        # 将提取的文本连接成一个单独的字符串
+                                        result = "".join(text).strip()
+                                        # 推送消息：标题+更新内容
+                                        send_message = table_title + '\r\n' + result + '\r\n'
+                                        is_have = search_multiline_text(bbs_filename, send_message)
+                                        if is_have:
+                                            logging.info("已推送更新内容")
+                                        else:
+                                            append_to_file(bbs_filename, send_message)
+                                            send_telegram_message(send_message, False)
+                                            send_synology_chat_message(send_message)
+                                            logging.info("记录并推送消息...")
+                                            logging.info(f"行数据: {row_data}")
+                                            logging.info(f"链接: {link}")
+                                    else:
+                                        logging.warning(f"行数据: {row_data}")
+                                        logging.warning("链接: 无")
                             else:
-                                append_to_file(bbs_filename, send_message)
-                                send_telegram_message(send_message, False)
-                                send_synology_chat_message(send_message)
-                                logging.info("记录并推送消息...")
-                                logging.info(f"行数据: {row_data}")
-                                logging.info(f"链接: {link}")
-                        else:
-                            logging.warning(f"行数据: {row_data}")
-                            logging.warning("链接: 无")
-                else:
-                    logging.warning("未找到匹配的日期时间信息")
-        if not is_get_message:
-            logging.info("今天没有更新！")
+                                logging.warning("未找到匹配的日期时间信息")
+                    if not is_get_message:
+                        logging.info("今天没有更新！")
+                except IndexError:
+                    logging.error("无法找到指定表格。可能是网页结构变化或XPath表达式错误。")
+                    # 在这里你可以添加适当的处理代码，例如终止脚本或进行其他操作。
+            else:
+                logging.error("GET请求失败，状态码: %d", response.status_code)
+                # 在这里你可以选择终止脚本、记录错误信息或采取其他操作
+        except requests.exceptions.RequestException as e:
+            logging.error("发送GET请求时出错：%s", str(e))
+            # 在这里你可以处理网络请求异常，例如终止脚本、记录错误信息或采取其他操作
         time.sleep(180)
 
 
