@@ -138,9 +138,9 @@ def check():
     logging.info("bbs检测程序开始执行...")
     # 记录更新内容的文件
     bbs_filename = os.path.join(script_dir, "logs/log_bbs", "tlbbs.txt")
-    # 今天是否有更新
-    is_get_message = False
     while True:
+        # 今天是否有更新
+        is_get_message = False
         try:
             # 发送GET请求
             response = requests.get(url, headers=headers)
@@ -230,6 +230,7 @@ def check():
         except requests.exceptions.RequestException as e:
             logging.error("发送GET请求时出错：%s", str(e))
             # 在这里你可以处理网络请求异常，例如终止脚本、记录错误信息或采取其他操作
+            send_telegram_message(f"发送GET请求时出错：{str(e)}", False)
         time.sleep(180)
 
 

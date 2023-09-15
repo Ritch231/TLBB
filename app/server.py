@@ -95,7 +95,7 @@ def send_synology_chat_message(message):
 # 检查服务器信息
 def check_server_information():
     # 检测周期
-    check_time = 60
+    check_time = 120
     # 获取当前脚本所在的目录
     script_dir = os.path.dirname(os.path.abspath(__file__))
     # 构建日志文件的相对路径
@@ -115,90 +115,107 @@ def check_server_information():
     }
 
     url = 'http://tlbblmupdate.changyou.com/xtlbbclose-jd/loginserver.txt'  # 设置游戏服务器信息的 URL
-
+    # 初次运行
+    first_start = True
     while True:
-        # 发送 GET 请求获取游戏服务器信息
-        response = requests.get(url=url, headers=headers)
-        if response.status_code == 200:
-            response.encoding = 'gb18030'
-            text = response.text
-            pattern = r'龙腾天下,(\d+),(\d+),(\d+),(\d+),(\d+),欢迎进入天龙内测服服务器,(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d+).*?(\d+\.\d+\.\d+),'
-            matches = re.findall(pattern, text)  # 使用正则表达式匹配游戏服务器信息
+        try:
+            # 发送 GET 请求获取游戏服务器信息
+            response = requests.get(url=url, headers=headers)
+            if response.status_code == 200:
+                response.encoding = 'gb18030'
+                text = response.text
+                pattern = r'龙腾天下,(\d+),(\d+),(\d+),(\d+),(\d+),欢迎进入天龙内测服服务器,(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d+).*?(\d+\.\d+\.\d+),'
+                matches = re.findall(pattern, text)  # 使用正则表达式匹配游戏服务器信息
 
-            if len(matches) > 0 and len(matches[0]) == 8:
-                new_version = matches[0][7]
-                if version != new_version and version != "":
-                    chat_text = new_version
-                    send_synology_chat_message(chat_text)
-                    send_telegram_message(chat_text, False)
-                    logging.info(chat_text)
-                server_new_status = matches[0][2]
-                if server_status != server_new_status:
-                    status_mapping = {
-                        "0": "爆满",
-                        "1": "繁忙",
-                        "2": "良好",
-                        "3": "极佳",
-                        "4": "维护",
-                    }
-                    chat_text = f"{server_new_status}:{status_mapping.get(server_new_status, '其他')}"
-                    send_synology_chat_message(chat_text)
-                    send_telegram_message(chat_text, False)
-                    server_status = server_new_status
-                    logging.info(chat_text)
+                if len(matches) > 0 and len(matches[0]) == 8:
+                    new_version = matches[0][7]
+                    if version != new_version and version != "":
+                        chat_text = new_version
+                        send_synology_chat_message(chat_text)
+                        send_telegram_message(chat_text, False)
+                        logging.info(chat_text)
+                    server_new_status = matches[0][2]
+                    if server_status != server_new_status:
+                        status_mapping = {
+                            "0": "爆满",
+                            "1": "繁忙",
+                            "2": "良好",
+                            "3": "极佳",
+                            "4": "维护",
+                        }
+                        chat_text = f"{server_new_status}:{status_mapping.get(server_new_status, '其他')}"
+                        send_synology_chat_message(chat_text)
+                        send_telegram_message(chat_text, False)
+                        server_status = server_new_status
+                        logging.info(chat_text)
 
-                target_ip = matches[0][5]
-                target_port = int(matches[0][6])
-                current_time = datetime.now()
+                    target_ip = matches[0][5]
+                    target_port = int(matches[0][6])
+                    current_time = datetime.now()
 
-                # 计算距离开始运行的时间
-                elapsed_time = current_time - start_time
-                # 运行20分钟写入一次记录
-                if elapsed_time >= log_interval:
-                    logging.info(
-                        f"ip:{matches[0][5]}:{matches[0][6]} 游戏版本号：{matches[0][7]} 服务器状态：{matches[0][2]}  检测周期：{check_time}秒")
-                    # 重置计时器
-                    start_time = current_time
-                # 最大重连次数
-                max_retries = 3
-                for retry_count in range(max_retries):
-                    try:
-                        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                        # 超时时间
-                        timeout = 12
-                        client_socket.settimeout(timeout)
-                        client_socket.connect((target_ip, target_port))
-                        client_socket.close()
+                    # 计算距离开始运行的时间
+                    elapsed_time = current_time - start_time
+                    # 运行20分钟写入一次记录
+                    if elapsed_time >= log_interval:
+                        logging.info(
+                            f"ip:{matches[0][5]}:{matches[0][6]} 游戏版本号：{matches[0][7]} 服务器状态：{matches[0][2]}  检测周期：{check_time}秒")
+                        # 重置计时器
+                        start_time = current_time
+                    # 最大重连次数
+                    max_retries = 3
+                    for retry_count in range(max_retries):
+                        try:
+                            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                            # 超时时间,正常时间10秒
+                            timeout = 20
+                            client_socket.settimeout(timeout)
+                            client_socket.connect((target_ip, target_port))
+                            client_socket.close()
 
-                        if port_status == 0:
-                            port_status = 1
-                            chat_text = "服务器已开放..."
-                            send_synology_chat_message(chat_text)
-                            send_telegram_message(chat_text, False)
-                            check_time = 60
-                            logging.info(
-                                f"ip:{matches[0][5]}:{matches[0][6]} 游戏版本号：{matches[0][7]} 服务器状态：{matches[0][2]}  检测周期：{check_time}秒")
-                            logging.info(f"成功连接到 {target_ip}:{target_port}")
-                        break
-                    except Exception as e:
-                        logging.error(f"连接失败: {e}")
-                        if retry_count < max_retries - 1:
-                            time.sleep(5)
-                        else:
-                            logging.warning("达到最大重试次数，放弃连接尝试")
-                            if port_status == 1:
-                                port_status = 0
-                                chat_text = "服务器已关闭！"
-                                send_synology_chat_message(chat_text)
-                                send_telegram_message(chat_text, False)
-                                check_time = 30
+                            if port_status == 0:
+                                port_status = 1
+                                # 判断程序是否初次执行
+                                if not first_start:
+                                    chat_text = "服务器已开放..."
+                                    send_synology_chat_message(chat_text)
+                                    send_telegram_message(chat_text, False)
+                                else:
+                                    chat_text = "'服务器检测'开始运行..."
+                                    send_synology_chat_message(chat_text)
+                                    send_telegram_message(chat_text, False)
+                                    first_start = False
+                                check_time = 120
                                 logging.info(
                                     f"ip:{matches[0][5]}:{matches[0][6]} 游戏版本号：{matches[0][7]} 服务器状态：{matches[0][2]}  检测周期：{check_time}秒")
-                                logging.info(chat_text)
+                                logging.info(f"成功连接到 {target_ip}:{target_port}")
+                            break
+                        except Exception as e:
+                            logging.error(f"连接失败: {e}")
+                            if retry_count < max_retries - 1:
+                                time.sleep(5)
+                            else:
+                                logging.warning("达到最大重试次数，放弃连接尝试")
+                                if port_status == 1:
+                                    port_status = 0
+                                    chat_text = "服务器已关闭！"
+                                    send_synology_chat_message(chat_text)
+                                    send_telegram_message(chat_text, False)
+                                    check_time = 30
+                                    logging.info(
+                                        f"ip:{matches[0][5]}:{matches[0][6]} 游戏版本号：{matches[0][7]} 服务器状态：{matches[0][2]}  检测周期：{check_time}秒")
+                                    logging.info(chat_text)
+                else:
+                    logging.error("匹配到的数据有异常！")
             else:
-                logging.error("匹配到的数据有异常！")
-        else:
-            logging.error("GET请求服务器失败！")
+                logging.error("GET请求服务器失败！")
+        except requests.exceptions.RequestException as e:
+            # 处理请求异常，例如网络问题
+            logging.error(f"请求发生异常: {str(e)}")
+            send_telegram_message(f"请求发生异常: {str(e)}", False)
+        except Exception as ex:
+            # 处理其他异常情况
+            logging.error(f"发生未知异常: {str(ex)}")
+            send_telegram_message(f"发生未知异常: {str(ex)}", False)
         time.sleep(check_time)
 
 
