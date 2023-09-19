@@ -89,6 +89,7 @@ def send_synology_chat_message(message):
 
     except Exception as e:
         logging.error("发送Synology Chat消息时出错: %s", str(e))
+        send_telegram_message(f"发送Synology Chat消息时出错:{str(e)}", False)
         # 在这里你可以选择是继续抛出异常，还是进行其他处理
 
 
@@ -107,7 +108,7 @@ def check_server_information():
     # 记录日志的初始时间
     start_time = datetime.now()
     logging.info("server检测程序开始执行...")
-    port_status = 0
+    port_status = 1
     server_status = "0"
     version = ""
     headers = {
@@ -117,6 +118,13 @@ def check_server_information():
     url = 'http://tlbblmupdate.changyou.com/xtlbbclose-jd/loginserver.txt'  # 设置游戏服务器信息的 URL
     # 初次运行
     first_start = True
+    status_mapping = {
+        "0": "爆满",
+        "1": "繁忙",
+        "2": "良好",
+        "3": "极佳",
+        "4": "维护",
+    }
     while True:
         try:
             # 发送 GET 请求获取游戏服务器信息
@@ -129,28 +137,32 @@ def check_server_information():
 
                 if len(matches) > 0 and len(matches[0]) == 8:
                     new_version = matches[0][7]
-                    if version != new_version and version != "":
-                        chat_text = new_version
-                        send_synology_chat_message(chat_text)
-                        send_telegram_message(chat_text, False)
-                        logging.info(chat_text)
                     server_new_status = matches[0][2]
-                    if server_status != server_new_status:
-                        status_mapping = {
-                            "0": "爆满",
-                            "1": "繁忙",
-                            "2": "良好",
-                            "3": "极佳",
-                            "4": "维护",
-                        }
-                        chat_text = f"{server_new_status}:{status_mapping.get(server_new_status, '其他')}"
-                        send_synology_chat_message(chat_text)
-                        send_telegram_message(chat_text, False)
-                        server_status = server_new_status
-                        logging.info(chat_text)
-
                     target_ip = matches[0][5]
                     target_port = int(matches[0][6])
+                    # 首次运行赋值
+                    if first_start:
+                        version = new_version
+                        server_status = server_new_status
+                        first_start = False
+                        chat_text = (
+                            f"【首次运行】：{status_mapping.get(server_new_status, '其他')}，{version}，{target_ip}:{target_port}")
+                        send_telegram_message(chat_text, False)
+
+                    # 判断版本号
+                    if version != new_version:
+                        version = new_version
+                        chat_text = f"需要更新：{version}"
+                        send_telegram_message(chat_text, False)
+                        send_synology_chat_message(chat_text)
+                        logging.info(chat_text)
+                    # 判断服务器状态
+                    if server_status != server_new_status:
+                        chat_text = f"{server_new_status}:{status_mapping.get(server_new_status, '其他')}"
+                        send_telegram_message(chat_text, False)
+                        send_synology_chat_message(chat_text)
+                        server_status = server_new_status
+                        logging.info(chat_text)
                     current_time = datetime.now()
 
                     # 计算距离开始运行的时间
@@ -171,26 +183,18 @@ def check_server_information():
                             client_socket.settimeout(timeout)
                             client_socket.connect((target_ip, target_port))
                             client_socket.close()
-
                             if port_status == 0:
                                 port_status = 1
-                                # 判断程序是否初次执行
-                                if not first_start:
-                                    chat_text = "服务器已开放..."
-                                    send_synology_chat_message(chat_text)
-                                    send_telegram_message(chat_text, False)
-                                else:
-                                    chat_text = "'服务器检测'开始运行..."
-                                    send_synology_chat_message(chat_text)
-                                    send_telegram_message(chat_text, False)
-                                    first_start = False
+                                chat_text = "服务器已开放..."
+                                send_telegram_message(chat_text, False)
+                                send_synology_chat_message(chat_text)
                                 check_time = 120
                                 logging.info(
                                     f"ip:{matches[0][5]}:{matches[0][6]} 游戏版本号：{matches[0][7]} 服务器状态：{matches[0][2]}  检测周期：{check_time}秒")
                                 logging.info(f"成功连接到 {target_ip}:{target_port}")
                             break
-                        except Exception as e:
-                            logging.error(f"连接失败: {e}")
+                        except Exception as err:
+                            logging.error(f"连接失败: {err}")
                             if retry_count < max_retries - 1:
                                 time.sleep(5)
                             else:
@@ -198,16 +202,18 @@ def check_server_information():
                                 if port_status == 1:
                                     port_status = 0
                                     chat_text = "服务器已关闭！"
-                                    send_synology_chat_message(chat_text)
                                     send_telegram_message(chat_text, False)
+                                    send_synology_chat_message(chat_text)
                                     check_time = 30
                                     logging.info(
                                         f"ip:{matches[0][5]}:{matches[0][6]} 游戏版本号：{matches[0][7]} 服务器状态：{matches[0][2]}  检测周期：{check_time}秒")
                                     logging.info(chat_text)
                 else:
                     logging.error("匹配到的数据有异常！")
+                    send_telegram_message("匹配到的数据有异常！", False)
             else:
                 logging.error("GET请求服务器失败！")
+                send_telegram_message("GET请求服务器失败！", False)
         except requests.exceptions.RequestException as e:
             # 处理请求异常，例如网络问题
             logging.error(f"请求发生异常: {str(e)}")
