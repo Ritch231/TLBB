@@ -1,11 +1,12 @@
-import re
+import json  # 导入 json 模块，用于处理 JSON 数据
+import logging  # 导入 logging 模块，用于记录日志信息
 import os
+import re
 import time
 from datetime import date, datetime, timedelta
-from lxml import html
+
 import requests
-import logging  # 导入 logging 模块，用于记录日志信息
-import json  # 导入 json 模块，用于处理 JSON 数据
+from lxml import html
 
 
 # 加载配置文件
@@ -89,6 +90,49 @@ def send_synology_chat_message(message):
 
     except Exception as e:
         logging.error("发送Synology Chat消息时出错: %s", str(e))
+        # 在这里你可以选择是继续抛出异常，还是进行其他处理
+
+# 发送企业微信信息
+def send_wechat_message(content):
+    try:
+        config = load_config()
+        corp_id = config["wechat"]["corp_id"]
+        agent_id = config["wechat"]["agent_id"]
+        secret = config["wechat"]["secret"]
+
+        # 准备发送的消息内容
+        msg = {
+            "touser": "mfkd1521|vicent",  # 用户ID，可以是单个用户或多个用户，用|分隔
+            "msgtype": "text",
+            "agentid": agent_id,
+            "text": {"content": content},
+        }
+
+        # 获取访问企业微信API的Access Token
+        def get_access_token(corp_id, secret):
+            url = f'https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid={corp_id}&corpsecret={secret}'
+            response = requests.get(url)
+            access_token = response.json().get('access_token', None)
+            return access_token
+
+        # 获取access_token
+        access_token = get_access_token(corp_id, secret)
+
+        # 如果access_token获取失败，则返回错误信息
+        if not access_token:
+            logging.info("wechat:获取access_token失败!")
+            return "获取access_token失败"
+        # 发送消息
+        url = f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={access_token}'
+        response = requests.post(url, json=msg)
+        # 检查响应状态码
+        if response.status_code == 200:
+            logging.info("wechat消息发送成功。")
+        else:
+            logging.error("wechat消息发送失败，状态码: %d", response.status_code)
+            raise Exception("wechat消息发送失败。")
+    except Exception as e:
+        logging.error("发送wechat消息时出错: %s", str(e))
         # 在这里你可以选择是继续抛出异常，还是进行其他处理
 
 

@@ -6,5 +6,10 @@
     "synology_chat": {
         "api_url": "https://nas.evannas.top:446/webapi/entry.cgi",
         "api_token": "sE4JWC9DJ8UGtaf7G5Lph82g7uSKw5WAoVsBTgTnOYs1T3MJbfPhSASebYtZVK7T"
+    },
+    "wechat": {
+        "corp_id": "ww746cd8d2177b6ac2",
+        "agent_id": "1000002",
+        "secret": "LWXfafqnNiOW-KeCMiorymw_jzjXq5QLB2lK4iBcqbs"
     }
 }
