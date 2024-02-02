@@ -253,8 +253,9 @@ def check():
                                             logging.info("已推送更新内容")
                                         else:
                                             append_to_file(bbs_filename, send_message)
-                                            send_telegram_message(send_message, False)
-                                            send_synology_chat_message(send_message)
+                                            # send_telegram_message(send_message, False)
+                                            # send_synology_chat_message(send_message)
+                                            send_wechat_message(send_message)
                                             logging.info("记录并推送消息...")
                                             logging.info(f"行数据: {row_data}")
                                             logging.info(f"链接: {link}")
@@ -274,7 +275,8 @@ def check():
         except requests.exceptions.RequestException as e:
             logging.error("发送GET请求时出错：%s", str(e))
             # 在这里你可以处理网络请求异常，例如终止脚本、记录错误信息或采取其他操作
-            send_telegram_message(f"发送GET请求时出错：{str(e)}", False)
+            # send_telegram_message(f"发送GET请求时出错：{str(e)}", False)
+            send_wechat_message(f"发送GET请求时出错：{str(e)}")
         time.sleep(180)
 
 

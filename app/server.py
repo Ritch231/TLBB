@@ -1,10 +1,11 @@
-from datetime import date, datetime, timedelta  # 导入 datetime 模块，用于处理日期和时间
 import json  # 导入 json 模块，用于处理 JSON 数据
 import logging  # 导入 logging 模块，用于记录日志信息
 import os
 import re  # 导入 re 模块，用于正则表达式匹配
 import socket  # 导入 socket 模块，用于网络通信
 import time  # 导入 time 模块，用于时间相关操作
+from datetime import date, datetime, timedelta  # 导入 datetime 模块，用于处理日期和时间
+
 import requests  # 导入 requests 模块，用于发送 HTTP 请求
 
 
@@ -89,9 +90,52 @@ def send_synology_chat_message(message):
 
     except Exception as e:
         logging.error("发送Synology Chat消息时出错: %s", str(e))
-        send_telegram_message(f"发送Synology Chat消息时出错:{str(e)}", False)
+        # send_telegram_message(f"发送Synology Chat消息时出错:{str(e)}", False)
+        send_wechat_message(f"发送Synology Chat消息时出错:{str(e)}")
         # 在这里你可以选择是继续抛出异常，还是进行其他处理
 
+# 发送企业微信信息
+def send_wechat_message(content):
+    try:
+        config = load_config()
+        corp_id = config["wechat"]["corp_id"]
+        agent_id = config["wechat"]["agent_id"]
+        secret = config["wechat"]["secret"]
+
+        # 准备发送的消息内容
+        msg = {
+            "touser": "mfkd1521|vicent",  # 用户ID，可以是单个用户或多个用户，用|分隔
+            "msgtype": "text",
+            "agentid": agent_id,
+            "text": {"content": content},
+        }
+
+        # 获取访问企业微信API的Access Token
+        def get_access_token(corp_id, secret):
+            url = f'https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid={corp_id}&corpsecret={secret}'
+            response = requests.get(url)
+            access_token = response.json().get('access_token', None)
+            return access_token
+
+        # 获取access_token
+        access_token = get_access_token(corp_id, secret)
+
+        # 如果access_token获取失败，则返回错误信息
+        if not access_token:
+            logging.info("wechat:获取access_token失败!")
+            return "获取access_token失败"
+        # 发送消息
+        url = f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={access_token}'
+        response = requests.post(url, json=msg)
+        # 检查响应状态码
+        if response.status_code == 200:
+            logging.info("wechat消息发送成功。")
+        else:
+            logging.error("wechat消息发送失败，状态码: %d", response.status_code)
+            raise Exception("wechat消息发送失败。")
+    except Exception as e:
+        logging.error("发送wechat消息时出错: %s", str(e))
+        # 在这里你可以选择是继续抛出异常，还是进行其他处理
 
 # 检查服务器信息
 def check_server_information():
@@ -147,20 +191,23 @@ def check_server_information():
                         first_start = False
                         chat_text = (
                             f"【首次运行】：{status_mapping.get(server_new_status, '其他')}，{version}，{target_ip}:{target_port}")
-                        send_telegram_message(chat_text, False)
+                        # send_telegram_message(chat_text, False)
+                        send_wechat_message(chat_text)
 
                     # 判断版本号
                     if version != new_version:
                         version = new_version
                         chat_text = f"需要更新：{version}"
-                        send_telegram_message(chat_text, False)
-                        send_synology_chat_message(chat_text)
+                        # send_telegram_message(chat_text, False)
+                        # send_synology_chat_message(chat_text)
+                        send_wechat_message(chat_text)
                         logging.info(chat_text)
                     # 判断服务器状态
                     if server_status != server_new_status:
                         chat_text = f"{server_new_status}:{status_mapping.get(server_new_status, '其他')}"
-                        send_telegram_message(chat_text, False)
-                        send_synology_chat_message(chat_text)
+                        # send_telegram_message(chat_text, False)
+                        # send_synology_chat_message(chat_text)
+                        send_wechat_message(chat_text)
                         server_status = server_new_status
                         logging.info(chat_text)
                     current_time = datetime.now()
@@ -186,8 +233,9 @@ def check_server_information():
                             if port_status == 0:
                                 port_status = 1
                                 chat_text = "服务器已开放..."
-                                send_telegram_message(chat_text, False)
-                                send_synology_chat_message(chat_text)
+                                # send_telegram_message(chat_text, False)
+                                # send_synology_chat_message(chat_text)
+                                send_wechat_message(chat_text)
                                 check_time = 120
                                 logging.info(
                                     f"ip:{matches[0][5]}:{matches[0][6]} 游戏版本号：{matches[0][7]} 服务器状态：{matches[0][2]}  检测周期：{check_time}秒")
@@ -202,26 +250,31 @@ def check_server_information():
                                 if port_status == 1:
                                     port_status = 0
                                     chat_text = "服务器已关闭！"
-                                    send_telegram_message(chat_text, False)
-                                    send_synology_chat_message(chat_text)
+                                    # send_telegram_message(chat_text, False)
+                                    # send_synology_chat_message(chat_text)
+                                    send_wechat_message(chat_text)
                                     check_time = 30
                                     logging.info(
                                         f"ip:{matches[0][5]}:{matches[0][6]} 游戏版本号：{matches[0][7]} 服务器状态：{matches[0][2]}  检测周期：{check_time}秒")
                                     logging.info(chat_text)
                 else:
                     logging.error("匹配到的数据有异常！")
-                    send_telegram_message("匹配到的数据有异常！", False)
+                    # send_telegram_message("匹配到的数据有异常！", False)
+                    send_wechat_message("匹配到的数据有异常！")
             else:
                 logging.error("GET请求服务器失败！")
-                send_telegram_message("GET请求服务器失败！", False)
+                # send_telegram_message("GET请求服务器失败！", False)
+                send_wechat_message("GET请求服务器失败！")
         except requests.exceptions.RequestException as e:
             # 处理请求异常，例如网络问题
             logging.error(f"请求发生异常: {str(e)}")
-            send_telegram_message(f"请求发生异常: {str(e)}", False)
+            # send_telegram_message(f"请求发生异常: {str(e)}", False)
+            send_wechat_message(f"请求发生异常: {str(e)}")
         except Exception as ex:
             # 处理其他异常情况
             logging.error(f"发生未知异常: {str(ex)}")
-            send_telegram_message(f"发生未知异常: {str(ex)}", False)
+            # send_telegram_message(f"发生未知异常: {str(ex)}", False)
+            send_wechat_message(f"发生未知异常: {str(ex)}")
         time.sleep(check_time)
 
 
